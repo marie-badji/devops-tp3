@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+
+  server-dba:
+    image: mysql:8.0
+    container_name: server-dba
+    environment:
+      MYSQL_ROOT_PASSWORD: Root@2024!
+      MYSQL_DATABASE: tododb
+      MYSQL_USER: todouser
+      MYSQL_PASSWORD: Todo@2024!
+    networks:
+      - backend-network
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "todouser", "-pTodo@2024!"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server-back:
+    build: ./server-back
+    container_name: server-back
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://server-dba:3306/tododb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: todouser
+      SPRING_DATASOURCE_PASSWORD: Todo@2024!
+    ports:
+      - "8080:8080"
+    depends_on:
+      server-dba:
+        condition: service_healthy
+    networks:
+      - backend-network
+      - frontend-network
+
+  server-front:
+    build: ./server-front
+    container_name: server-front
+    ports:
+      - "8081:80"
+    networks:
+      - frontend-network
+
+networks:
+  backend-network:
+    driver: bridge
+  frontend-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
